@@ -41,7 +41,9 @@ def save_cwf_result(result, root):
                 image_names=np.asarray(result['image_names'], dtype=str),
                 pixel_size_angstrom=float(result['pixel_size_angstrom']),
                 image_shape=np.asarray(arrays['denoised'].shape[1:]),
-                run_id=folder.name, schema_version=1)
+                run_id=folder.name, schema_version=1,
+                lowpass_checkpoint=str(result.get("lowpass_checkpoint", "")),
+                lowpass_sigma_pixels=float(result.get("lowpass_sigma_pixels", np.nan)))
     # Attach provenance to this exact in-memory result for the subsequent crop save.
     result['_checkpoint_directory'] = str(folder)
     return folder
