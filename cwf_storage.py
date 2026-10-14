@@ -42,6 +42,11 @@ def save_cwf_result(result, root):
                 pixel_size_angstrom=float(result['pixel_size_angstrom']),
                 image_shape=np.asarray(arrays['denoised'].shape[1:]),
                 run_id=folder.name, schema_version=1,
+                noise_source=str(result.get("noise_statistics", {}).get("source", "reference_stack")),
+                noise_diameter_fraction=float(result.get("noise_statistics", {}).get("diameter_fraction", np.nan)),
+                noise_image_count=int(result.get("noise_statistics", {}).get("count", 0)),
+                noise_background_mean=float(result.get("noise_statistics", {}).get("mean", np.nan)),
+                noise_psd=np.asarray(result.get("noise_psd", [])),
                 lowpass_checkpoint=str(result.get("lowpass_checkpoint", "")),
                 lowpass_sigma_pixels=float(result.get("lowpass_sigma_pixels", np.nan)))
     # Attach provenance to this exact in-memory result for the subsequent crop save.

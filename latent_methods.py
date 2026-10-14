@@ -231,6 +231,71 @@ def estimate_cwf_noise(noise_path, original_size, original_pixel_size,
     }
 
 
+
+def estimate_cwf_corner_noise(images, original_pixel_size, resolution,
+                              batch_size=32, diameter_fraction=0.8,
+                              padding_factor=1.6):
+    """Estimate radial colored noise from pixels outside a central exclusion disk.
+
+    Masked periodograms are normalized by observed mask area, not full box area.
+    Zero padding samples the spectrum on the CWF workspace grid; padded pixels
+    are not counted as observations. Masking smooths the true spectrum, and this
+    stationary approximation does not model reflection-padding correlations.
+    """
+    _import_cwf()
+    images = np.asarray(images)
+    if (images.ndim != 3 or images.shape[1] != images.shape[2]
+            or len(images) < 2 or batch_size < 1
+            or not 16 <= resolution <= images.shape[-1]):
+        raise ValueError("Need >=2 square images, positive batch size and valid resolution")
+    if not np.isfinite(diameter_fraction) or not 0 < diameter_fraction < 1:
+        raise ValueError("diameter_fraction must lie strictly between 0 and 1")
+    if not np.isfinite(original_pixel_size) or original_pixel_size <= 0:
+        raise ValueError("Need a positive finite pixel size")
+    margin, working_size = _cwf_padding(resolution, padding_factor)
+    yy, xx = np.indices((resolution, resolution))
+    radius = diameter_fraction * resolution / 2
+    background = np.hypot(xx - (resolution-1)/2, yy - (resolution-1)/2) > radius
+    pixel_count = int(background.sum())
+    # One shared mean, rather than removing a separate mean from each particle.
+    total = 0.0
+    previews = []
+    for start in range(0, len(images), batch_size):
+        small = _cwf_downsample_batch(images[start:start+batch_size], resolution)
+        total += small[:, background].sum(dtype=np.float64)
+        if len(previews) < 3:
+            previews.extend(small[:3-len(previews)].copy())
+    mean = total / (len(images) * pixel_count)
+    power = np.zeros((working_size, working_size), dtype=np.float64)
+    for start in range(0, len(images), batch_size):
+        small = _cwf_downsample_batch(images[start:start+batch_size], resolution)
+        masked = (small.astype(np.float64) - mean) * background
+        padded = np.pad(masked, ((0,0), (margin,margin), (margin,margin)))
+        fft = np.fft.fftshift(np.fft.fft2(padded, norm="ortho"), axes=(-2,-1))
+        power += np.sum(np.abs(fft)**2, axis=0)
+    measured = power * working_size**2 / (len(images) * pixel_count)
+    if not np.isfinite(measured).all() or np.median(measured) <= 0:
+        raise ValueError("Background does not provide a positive finite noise spectrum")
+    freq = np.fft.fftshift(np.fft.fftfreq(working_size)) * working_size
+    fy, fx = np.meshgrid(freq, freq, indexing="ij")
+    rings = np.rint(np.hypot(fx, fy)).astype(int)
+    radial = np.bincount(rings.ravel(), weights=measured.ravel()) / np.bincount(rings.ravel())
+    psd = np.maximum(radial, 0.01 * np.median(measured))[rings].astype(np.float32)
+    epsilon = float((100 * np.finfo(np.float32).eps)**2)
+    response = PowerFilter(ArrayFilter(psd), power=-0.5, epsilon=epsilon).evaluate_grid(working_size)
+    whitened_variance = float(np.mean(measured * response.astype(np.float64)**2))
+    pixel_size = float(original_pixel_size * images.shape[-1] / resolution)
+    return dict(source="particle_corners", count=len(images), mean=float(mean),
+                variance=float(measured.mean()), noise_psd=psd, measured_psd=measured,
+                radial_psd=radial, frequency_inv_angstrom=np.arange(len(radial))/(working_size*pixel_size),
+                pixel_size_angstrom=pixel_size, whitening_epsilon=epsilon,
+                whitened_variance=whitened_variance, working_size=working_size,
+                crop_margin=margin, preview=np.asarray(previews)-mean,
+                background_mask=background, background_pixels_per_image=pixel_count,
+                diameter_fraction=float(diameter_fraction), diameter_pixels=2*radius,
+                original_size=images.shape[-1])
+
+
 def _cwf_group_ctfs(meta, max_groups):
     """Bound CTF storage by approximating nearby radial CTFs with representatives.
 
@@ -286,10 +351,10 @@ def _cwf_memory_estimate(image_bytes, count, resolution, batch_size, basis, n_fi
     return estimated / 1024**3, one_ctf_bytes
 
 
-def denoise_selected_cwf(images, particles, optics, noise_path, resolution=64,
+def denoise_selected_cwf(images, particles, optics, noise_path=None, resolution=64,
                          batch_size=32, noise_count=None, noise_pixel_size=None,
                          padding_factor=1.6, max_ctf_groups=32,
-                         memory_budget_gb=4.0, noise_images=None):
+                         memory_budget_gb=4.0, noise_images=None, noise_stats=None):
     """Experimental CTF-aware CWF on the supplied images only; preserve their order."""
     _import_cwf()
     images = np.asarray(images)
@@ -342,11 +407,25 @@ def denoise_selected_cwf(images, particles, optics, noise_path, resolution=64,
             "Reduce cwf_resolution (e.g. 64), particle count, or cwf_max_ctf_groups before rerunning."
         )
 
-    noise_stats = estimate_cwf_noise(
-        noise_path, original_size=images.shape[-1], original_pixel_size=pixel_sizes[0],
-        resolution=resolution, batch_size=batch_size, max_images=noise_count,
-        noise_pixel_size=noise_pixel_size, padding_factor=padding_factor,
-    )
+    if noise_stats is None:
+        if noise_path is None:
+            raise ValueError("Provide precomputed noise_stats or a noise reference path")
+        noise_stats = estimate_cwf_noise(
+            noise_path, original_size=images.shape[-1], original_pixel_size=pixel_sizes[0],
+            resolution=resolution, batch_size=batch_size, max_images=noise_count,
+            noise_pixel_size=noise_pixel_size, padding_factor=padding_factor,
+        )
+    expected_pixel_size = pixel_sizes[0] * images.shape[-1] / resolution
+    if (noise_stats["working_size"] != working_size or noise_stats["crop_margin"] != margin
+            or not np.isclose(noise_stats["pixel_size_angstrom"], expected_pixel_size)
+            or np.shape(noise_stats["noise_psd"]) != (working_size, working_size)):
+        raise ValueError("Noise statistics mismatch; rerun background estimation with current settings")
+    if (not np.isfinite(noise_stats["mean"])
+            or not np.isfinite(noise_stats["noise_psd"]).all()
+            or np.any(noise_stats["noise_psd"] <= 0)
+            or not np.isfinite(noise_stats["whitened_variance"])
+            or noise_stats["whitened_variance"] <= 0):
+        raise ValueError("Invalid precomputed noise statistics")
     pixel_size = noise_stats["pixel_size_angstrom"]
     margin = noise_stats["crop_margin"]
     working_size = noise_stats["working_size"]
