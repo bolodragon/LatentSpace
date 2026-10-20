@@ -84,8 +84,8 @@ def save_cwf_circles(result, pixels, mask, diameter):
 
 def select_cwf_directory(root, source, directory=None):
     """Select a complete checkpoint of the requested notebook input source."""
-    if source not in ("own", "camille"):
-        raise ValueError('cwf_input_source must be "own" or "camille".')
+    if source not in ("own", "camille", "normalized_camille"):
+        raise ValueError('Input source must be "own", "camille", or "normalized_camille".')
     root = Path(root)
 
     def matches(folder):
@@ -93,7 +93,12 @@ def select_cwf_directory(root, source, directory=None):
             return False
         with np.load(folder / "cwf_result.npz", allow_pickle=False) as saved:
             external = bool(saved["input_is_processed_reference"]) if "input_is_processed_reference" in saved else False
-        return external == (source == "camille")
+        normalized = (folder / "normalization.json").is_file()
+        if source == "own":
+            return not external
+        if source == "normalized_camille":
+            return external and normalized
+        return external and not normalized
 
     if directory is not None:
         folder = Path(directory)
@@ -104,7 +109,7 @@ def select_cwf_directory(root, source, directory=None):
         return folder
     candidates = [folder for folder in root.glob("cwf_saved_*") if matches(folder)]
     if not candidates:
-        preparation = "2.2 and 2.3" if source == "own" else "2.5"
+        preparation = {"own": "2.2 and 2.3", "camille": "2.5", "normalized_camille": "2.5a"}[source]
         raise FileNotFoundError(f"No complete {source!r} checkpoint found. Run section(s) {preparation} first.")
     return max(candidates, key=lambda folder: (folder / "cwf_circles.npz").stat().st_mtime_ns)
 
