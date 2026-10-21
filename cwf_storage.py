@@ -109,7 +109,7 @@ def select_cwf_directory(root, source, directory=None):
         return folder
     candidates = [folder for folder in root.glob("cwf_saved_*") if matches(folder)]
     if not candidates:
-        preparation = {"own": "2.2 and 2.3", "camille": "2.5", "normalized_camille": "2.5a"}[source]
+        preparation = {"own": "2.2 and 2.3", "camille": "2b.1", "normalized_camille": "2b.2"}[source]
         raise FileNotFoundError(f"No complete {source!r} checkpoint found. Run section(s) {preparation} first.")
     return max(candidates, key=lambda folder: (folder / "cwf_circles.npz").stat().st_mtime_ns)
 
@@ -146,19 +146,22 @@ def load_cwf_circles(root, directory=None):
 
 
 def import_external_cwf(path, previous_result, count=4000, seed=0):
-    """Import a reproducible random subset; retain local noise controls.
+    """Import a reproducible subset, or count="all" in stack order; retain noise controls.
 
     External row order has no verified raw/STAR mapping. The input slot therefore
     holds a processed reference copy, NOT a matched raw image.
     """
     import mrcfile
-    from aspire.image import Image
-    if not isinstance(count, (int, np.integer)) or count < 1:
-        raise ValueError("count must be a positive integer")
+    use_all = isinstance(count, str) and count.lower() == "all"
+    if not use_all and (isinstance(count, (bool, np.bool_)) or not isinstance(count, (int, np.integer)) or count < 1):
+        raise ValueError('count must be a positive integer or "all"')
     with mrcfile.mmap(str(path), mode="r") as mrc:
-        if mrc.data.ndim != 3 or mrc.data.shape[1] != mrc.data.shape[2] or len(mrc.data) < count:
-            raise ValueError("Need a square MRC stack with at least count images")
-        indices = np.sort(np.random.default_rng(seed).choice(len(mrc.data), size=count, replace=False))
+        if mrc.data.ndim != 3 or mrc.data.shape[1] != mrc.data.shape[2]:
+            raise ValueError("Need a square MRC image stack")
+        total = len(mrc.data)
+        if not total or (not use_all and count > total):
+            raise ValueError(f"Requested {count} images, but the stack contains {total}")
+        indices = np.arange(total) if use_all else np.sort(np.random.default_rng(seed).choice(total, size=count, replace=False))
         images = np.array(mrc.data[indices], dtype=np.float32, copy=True)
         spacing = np.array([float(mrc.voxel_size.x), float(mrc.voxel_size.y)])
     if not np.isfinite(images).all() or not np.isfinite(spacing).all() or np.any(spacing <= 0) or not np.allclose(spacing, spacing[0]):
@@ -174,16 +177,25 @@ def import_external_cwf(path, previous_result, count=4000, seed=0):
             raise ValueError("Need existing finite local noise controls")
         if a.shape[-1] < size or not np.isclose(a.shape[-1]*float(previous_result["pixel_size_angstrom"]), size*spacing[0], rtol=1e-3):
             raise ValueError("Noise controls must cover the same physical box and have >= external resolution")
-        result[key] = a.copy() if a.shape[-1] == size else Image(a).downsample(size).asnumpy().copy()
+        if a.shape[-1] == size:
+            result[key] = a.copy()
+        else:
+            from aspire.image import Image
+            result[key] = Image(a).downsample(size).asnumpy().copy()
     return result
 
 
-def normalize_camille_images(images, diameter=None):
+def normalize_camille_images(images, diameter=None, enabled=True):
     """Standardize each image using only its centered circle's mean and std.
+
+    With enabled=False, return unchanged pixels and identity offsets/scales.
+    The circle representation is retained for checkpoint compatibility.
 
     Returned offsets are in input units: output = (images - offsets) / scales.
     """
-    images = np.asarray(images, dtype=np.float64)
+    if not isinstance(enabled, (bool, np.bool_)):
+        raise ValueError("enabled must be boolean")
+    images = np.asarray(images)
     if images.ndim != 3 or images.shape[1] != images.shape[2] or not len(images) or not np.isfinite(images).all():
         raise ValueError("Expected a nonempty finite stack of square images")
     size = images.shape[-1]
@@ -194,6 +206,9 @@ def normalize_camille_images(images, diameter=None):
     mask = (xx - (size - 1) / 2)**2 + (yy - (size - 1) / 2)**2 <= (diameter / 2)**2
     if mask.sum() < 2:
         raise ValueError("The center circle must contain at least two pixels")
+    if not enabled:
+        return images.copy(), mask, np.zeros(len(images)), np.ones(len(images))
+    images = images.astype(np.float64, copy=False)
     values = images[:, mask]
     offsets = values.mean(axis=1)
     scales = values.std(axis=1)

@@ -6,8 +6,17 @@ from scipy import ndimage as ndi
 def segment_center_particle(image, sigma=1.0, seed_radius_fraction=0.18,
                             growth_radius_fraction=0.35, thresholds=(1.0, 1.5, 2.0),
                             seed_threshold=2.5, min_area=8, max_hole_area=8,
-                            threshold_mode="standardized"):
-    """Grow from a central seed using standardized or seed-relative contrast."""
+                            threshold_mode="standardized", connectivity=4,
+                            bridge_radius_pixels=1, method="connected",
+                            edge_threshold=0.15, foreground_core_fraction=0.5):
+    """Segment with legacy connected growth or derivative-based marker watershed.
+
+    Watershed uses intensity to mark background and a central bright core to
+    mark foreground. Gradient magnitude is divided by seed contrast (per pixel).
+    Gradients below edge_threshold are flattened; stronger ridges guide the
+    competing floods. The edge threshold is not a hard wall. Opening is used
+    only by the legacy connected method.
+    """
     image = np.asarray(image, dtype=float)
     thresholds = np.asarray(thresholds, dtype=float)
     if image.ndim != 2 or image.shape[0] != image.shape[1] or not np.isfinite(image).all():
@@ -16,17 +25,31 @@ def segment_center_particle(image, sigma=1.0, seed_radius_fraction=0.18,
             not 0 < seed_radius_fraction <= growth_radius_fraction < .5):
         raise ValueError("Need sigma >= 0 and 0 < seed radius <= growth radius < 0.5")
     if (thresholds.ndim != 1 or not len(thresholds) or not np.isfinite(thresholds).all()
-            or np.any(thresholds <= 0) or np.any(np.diff(thresholds) <= 0)
+            or np.any(np.diff(thresholds) <= 0)
             or not np.isfinite(seed_threshold) or seed_threshold <= 0):
-        raise ValueError("Use increasing positive thresholds and a positive seed threshold")
+        raise ValueError("Use increasing finite thresholds and a positive seed threshold")
     if threshold_mode not in ("relative", "standardized"):
         raise ValueError("threshold_mode must be relative or standardized")
-    if threshold_mode == "relative" and np.any(thresholds > 1):
-        raise ValueError("Relative thresholds must be fractions in (0, 1]")
+    if threshold_mode == "relative" and np.any((thresholds < -1) | (thresholds > 1)):
+        raise ValueError("Relative thresholds must lie in [-1, 1]")
+    if threshold_mode == "standardized" and np.any(thresholds <= 0):
+        raise ValueError("Standardized thresholds must be positive")
     if threshold_mode == "standardized" and thresholds[-1] > seed_threshold:
         raise ValueError("Standardized thresholds cannot exceed the seed threshold")
     if any(isinstance(x, bool) or not isinstance(x, (int, np.integer)) for x in (min_area, max_hole_area)) or min_area < 1 or max_hole_area < 0:
         raise ValueError("Use integer min_area >= 1 and max_hole_area >= 0")
+    if isinstance(connectivity, (bool, np.bool_)) or connectivity not in (4, 8):
+        raise ValueError("connectivity must be 4 or 8")
+    if (isinstance(bridge_radius_pixels, (bool, np.bool_))
+            or not isinstance(bridge_radius_pixels, (int, np.integer))
+            or bridge_radius_pixels < 0):
+        raise ValueError("bridge_radius_pixels must be a nonnegative integer")
+    if method not in ("connected", "edge_watershed"):
+        raise ValueError("method must be connected or edge_watershed")
+    if not np.isfinite(edge_threshold) or edge_threshold < 0:
+        raise ValueError("edge_threshold must be finite and nonnegative")
+    if not np.isfinite(foreground_core_fraction) or not 0 < foreground_core_fraction <= 1:
+        raise ValueError("foreground_core_fraction must lie in (0, 1]")
     size = image.shape[0]
     yy, xx = np.ogrid[:size, :size]
     radius2 = (xx-(size-1)/2)**2 + (yy-(size-1)/2)**2
@@ -41,35 +64,79 @@ def segment_center_particle(image, sigma=1.0, seed_radius_fraction=0.18,
         scores = (smoothed-background) / scale
     seed = np.unravel_index(np.argmax(np.where(seed_region, scores, -np.inf)), image.shape)
     seed_ok = scores[seed] >= seed_threshold
+    if sigma > 0:
+        gy = ndi.gaussian_filter(image, sigma=sigma, order=(1, 0))
+        gx = ndi.gaussian_filter(image, sigma=sigma, order=(0, 1))
+    else:
+        gy, gx = np.gradient(smoothed)
+    gradient = np.hypot(gx, gy)
+    seed_contrast = float(smoothed[seed] - background)
+    gradient_relative = gradient / max(seed_contrast, np.finfo(float).eps)
+    elevation = np.maximum(gradient_relative - edge_threshold, 0)
     masks, rows = [], []
-    connectivity = np.ones((3, 3), dtype=bool)
+    structure = ndi.generate_binary_structure(2, 1 if connectivity == 4 else 2)
+    foreground_core = seed_region & (scores >= foreground_core_fraction * scores[seed])
+    core_labels, _ = ndi.label(foreground_core, structure=structure)
+    foreground_core = (core_labels == core_labels[seed]) if core_labels[seed] else np.zeros_like(seed_region)
+    if method == "edge_watershed":
+        from skimage.segmentation import watershed
+    by, bx = np.ogrid[-bridge_radius_pixels:bridge_radius_pixels+1,
+                      -bridge_radius_pixels:bridge_radius_pixels+1]
+    opening_footprint = bx*bx + by*by <= bridge_radius_pixels**2
     boundary = growth_region & ~ndi.binary_erosion(growth_region)
     for threshold in thresholds:
         cutoff = float(threshold * scores[seed] if threshold_mode == "relative" else threshold)
         mask = np.zeros_like(image, dtype=bool)
+        candidate = (scores >= cutoff) & growth_region
+        allowed = (ndi.binary_opening(candidate, structure=opening_footprint)
+                   if method == "connected" and bridge_radius_pixels else candidate.copy())
+        seed_survives = bool(allowed[seed])
         if seed_ok:
-            labels, _ = ndi.label((scores >= cutoff) & growth_region, structure=connectivity)
-            label = labels[seed]
-            if label:
-                mask = labels == label  # Discard disconnected bright regions.
+            if method == "edge_watershed":
+                markers = np.zeros(image.shape, dtype=np.int32)
+                markers[~candidate] = 2
+                markers[foreground_core & candidate] = 1
+                markers[seed] = 1
+                mask = (watershed(elevation, markers, connectivity=structure) == 1) & candidate
+                # Keep a single seed-connected particle, even after threshold clipping.
+                labels, _ = ndi.label(mask, structure=structure)
+                mask = labels == labels[seed] if labels[seed] else np.zeros_like(mask)
+            else:
+                marker = np.zeros_like(mask)
+                marker[seed] = seed_survives
+                mask = ndi.binary_propagation(marker, mask=allowed, structure=structure)
             if mask.sum() < min_area:
                 mask[:] = False
             elif max_hole_area:
-                holes = ndi.binary_fill_holes(mask) & ~mask & growth_region
+                holes = ndi.binary_fill_holes(mask, structure=structure) & ~mask & growth_region
                 hole_labels, _ = ndi.label(holes)
                 sizes = np.bincount(hole_labels.ravel())
                 fill = sizes <= max_hole_area
                 fill[0] = False
+                # Never fill a hole containing a rejected bright component.
+                fill[np.unique(hole_labels[candidate & ~mask])] = False
                 mask |= fill[hole_labels]
         masks.append(mask)
-        rows.append(dict(threshold=float(threshold), threshold_mode=threshold_mode,
+        rows.append(dict(threshold=float(threshold), threshold_mode=threshold_mode, method=method,
+                         edge_threshold=float(edge_threshold),
+                         edge_gradient_cutoff=float(edge_threshold * max(seed_contrast, 0)),
+                         foreground_core_fraction=float(foreground_core_fraction),
                          cutoff_standardized=cutoff, cutoff_intensity=float(background + cutoff*scale),
                          background_mean=background, seed_intensity=float(smoothed[seed]),
                          area_pixels=int(mask.sum()),
                          seed_score=float(scores[seed]),
+                         threshold_area_pixels=int(candidate.sum()),
+                         opening_removed_pixels=int((candidate & ~allowed).sum()),
+                         rejected_candidate_pixels=int((candidate & ~mask).sum()),
+                         connectivity=int(connectivity),
+                         bridge_radius_pixels=int(bridge_radius_pixels) if method == "connected" else 0,
                          touches_growth_boundary=bool(np.any(mask & boundary)),
-                         status="ok" if mask.any() else ("weak_seed" if not seed_ok else "too_small")))
+                         status=("ok" if mask.any() else "weak_seed" if not seed_ok
+                                 else "seed_removed_by_opening" if not seed_survives else "too_small")))
     return dict(smoothed=smoothed, scores=scores, masks=np.asarray(masks),
+                gradient=gradient, gradient_relative=gradient_relative, elevation=elevation,
+                edge_ridges=(gradient_relative > edge_threshold) & growth_region,
+                foreground_core=foreground_core,
                 seed=seed, seed_region=seed_region, growth_region=growth_region, rows=rows)
 
 

@@ -56,3 +56,42 @@ def load_aggregated_results(root,directory=None):
     if result['vectors'].shape != (len(result['image_names']),settings.get('n_features', settings['n_sectors'])):
         raise ValueError('Aggregated vectors and IDs disagree')
     return dict(result,directory=folder,settings=settings,image_shape=result['sector_map'].shape)
+
+
+def aggregate_polar(images, n_sectors=8, n_radial_bands=3, radius_fraction=.35,
+                    method='intensity_sum', start_angle_degrees=0., count_mode='fraction',
+                    positive_threshold=0.):
+    """Ring-major, clockwise bins restricted to a centered circle.
+
+    Return raw intensity sums, plus counts or occupancy fractions. This is not
+    normalization across the feature vector; fractions divide by each bin's area.
+    """
+    images=np.asarray(images)
+    if images.ndim!=3 or not len(images) or not np.isfinite(images).all():
+        raise ValueError('Expected a finite nonempty image stack')
+    for value in (n_sectors,n_radial_bands):
+        if isinstance(value,(bool,np.bool_)) or not isinstance(value,(int,np.integer)) or value<1:
+            raise ValueError('Sectors and radial bands must be positive integers')
+    if not 0<radius_fraction<=.5 or not np.isfinite(start_angle_degrees) or not np.isfinite(positive_threshold):
+        raise ValueError('Invalid radius, first-cut angle, or positive threshold')
+    if method not in SECTOR_SCORERS or count_mode not in ('count','fraction'):
+        raise ValueError('Unknown scoring method or count_mode')
+    h,w=images.shape[1:];y,x=np.indices((h,w));dy=y-(h-1)/2;dx=x-(w-1)/2
+    radius=min(h,w)*radius_fraction;r=np.hypot(dx,dy);support=r<=radius
+    phi=np.mod(np.arctan2(dx,-dy)-np.deg2rad(start_angle_degrees%360),2*np.pi)
+    phi[(dx==0)&(dy==0)]=0
+    sectors=np.minimum((phi*n_sectors/(2*np.pi)).astype(int),n_sectors-1)
+    rings=np.minimum((r/radius*n_radial_bands).astype(int),n_radial_bands-1)
+    bins=np.where(support,rings*n_sectors+sectors,-1)
+    size=n_sectors*n_radial_bands
+    areas=np.bincount(bins[support],minlength=size)
+    if np.any(areas==0):raise ValueError('Some radial/sector bins are empty; reduce bands or sectors')
+    sums=np.empty((len(images),size),dtype=np.float64);counts=np.empty_like(sums)
+    for j in range(size):
+        pixels=images[:,bins==j]
+        sums[:,j]=SECTOR_SCORERS[method](pixels)
+        counts[:,j]=np.count_nonzero(pixels>positive_threshold,axis=1)
+    occupancy=counts/areas if count_mode=='fraction' else counts
+    return dict(vectors=np.concatenate([sums,occupancy],axis=1).astype(np.float32),
+                sector_map=bins,pixel_counts=areas,positive_pixel_counts=counts,
+                total_positive_pixels=counts.sum(axis=1),support_mask=support)
