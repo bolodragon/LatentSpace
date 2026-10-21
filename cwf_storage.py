@@ -185,12 +185,17 @@ def import_external_cwf(path, previous_result, count=4000, seed=0):
     return result
 
 
-def normalize_camille_images(images, diameter=None):
+def normalize_camille_images(images, diameter=None, enabled=True):
     """Standardize each image using only its centered circle's mean and std.
+
+    With enabled=False, return unchanged pixels and identity offsets/scales.
+    The circle representation is retained for checkpoint compatibility.
 
     Returned offsets are in input units: output = (images - offsets) / scales.
     """
-    images = np.asarray(images, dtype=np.float64)
+    if not isinstance(enabled, (bool, np.bool_)):
+        raise ValueError("enabled must be boolean")
+    images = np.asarray(images)
     if images.ndim != 3 or images.shape[1] != images.shape[2] or not len(images) or not np.isfinite(images).all():
         raise ValueError("Expected a nonempty finite stack of square images")
     size = images.shape[-1]
@@ -201,6 +206,9 @@ def normalize_camille_images(images, diameter=None):
     mask = (xx - (size - 1) / 2)**2 + (yy - (size - 1) / 2)**2 <= (diameter / 2)**2
     if mask.sum() < 2:
         raise ValueError("The center circle must contain at least two pixels")
+    if not enabled:
+        return images.copy(), mask, np.zeros(len(images)), np.ones(len(images))
+    images = images.astype(np.float64, copy=False)
     values = images[:, mask]
     offsets = values.mean(axis=1)
     scales = values.std(axis=1)
