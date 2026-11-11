@@ -85,9 +85,23 @@ The checkpoint directory names above identify **existing example runs**, not uni
 This README summarizes the main notebook `expeirment.ipynb`, the cwf denoising script `xxx_camille.py` and validation `validation_folder`. The required helper modules are part of the original project implementation and need to be supplied separately.
 Contributions of the different team members can be found in the CONTRIBUTIONS.md
 
+## Citation
 
+Cite this work as:
+@software{LatentSpace,
+  author = {Xuelong Fan, Camille Penot, Ja!!!!, Anna-Lena Fischer},
+  title = {LatentSpace - Differentiating protein composition in cryo-EM images},
+  year = {2026},
+  url = {https://github.com/bolodragon/LatentSpace}
+}
 
+# License 
+
+This project is licensed under the MIT License. This means that anyone is free to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the software, provided that the original copyright and license notice are included.
+
+See the LICENSE file for the full license text.
+
+Copyright (c) 2026 LatentSpace group
 
 #### TO DO: software/package versions
-#### TO DO: licence and citation information
 #### TO DO: final tagged release / archived version
