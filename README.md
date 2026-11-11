@@ -4,12 +4,12 @@ Proteins can exist in different compositions which define the biological functio
 
 The main analysis platform is the jupyter notebook "expeirment.ipynb". Each cell of the notebook has a documentation of what is done and what data is needed. 
 
-#### merge LatentSpace_afi for streamlit files!!! 
+#### TO DO: merge LatentSpace_afi for streamlit files!!! 
 #### Information about the streamlit app: data output of the jupyter notebook run on 4000 images can be found in the outputs folder and are the basis for the streamlit app. Access the app here: https://latentspace.streamlit.app/
 
 
 Contributions of the different team members can be found in the CONTRIBUTIONS.md
 
-#### software/package versions
-#### licence and citation information
-#### final tagged release / archived version
+#### TO DO: software/package versions
+#### TO DO: licence and citation information
+#### TO DO: final tagged release / archived version
