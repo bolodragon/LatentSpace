@@ -5,6 +5,10 @@ Contribution record of the group members:
 - Denoising of single cryo-EM images: Camille Penot and Xuelong Fan
 - Feature extraction, unsupervised machine learning approaches: all group members
 - Cross-validation: Khuanpiroon Ratanasopa
-- streamlit app: Anna-Lena Fischer
+- Streamlit app: Anna-Lena Fischer
+- Code files:
+    - `xxx_camille.py` and processing: Camille Penot
+    - `expeirment.ipynb` and functions: Xuelong Fan
+    - `validation_folder`, and its files and functions: Khuanpiroon Ratanasopa
 
 All group members discussed the Results together and made decisions on how to proceed with the project and the final presentation.
