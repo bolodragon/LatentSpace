@@ -45,11 +45,11 @@ These are the main third-party imports used directly by the notebooks. **Check t
 
 The notebooks expect, or inspect, the following filenames:
 
-| Input | Used in | Notes |
-|---|---|---|
-| `particle_stack.mrc` | 01, 02b | Original raw particle stack|
-| `particle_stack.star` | 01 | STAR metadata with particle IDs and stack indexes |
-| `noise_stack.mrc` | 01 | Pure noise stack |
+| Input | Notes |
+|---|---|
+| `particle_stack.mrc` | Original raw particle stack|
+| `particle_stack.star` | STAR metadata with particle IDs and stack indexes |
+| `noise_stack.mrc` | Pure noise stack |
 
 **Critical ordering fact:** The CWF stack follows the **original raw MRC stack order**, **not the STAR row order**. Matching particles by `particle_id` and `stack_index_1based` is essential; never simply align STAR rows and CWF rows by their numerical position.
 
