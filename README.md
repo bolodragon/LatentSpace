@@ -9,7 +9,7 @@ The main analysis platform is the jupyter notebook `expeirment.ipynb`. Each cell
 ├── CONTRIBUTIONS.md
 ├── expeirment.ipynb
 ├── cwf_denoising/code.py
-├── ja_notebook_validation.ipynb
+├── validation_folder (notebook 01,02b,03,09)
 │
 ├── latent_methods.py          # REQUIRED for 01; supply original file
 ├── lowpass_io.py              # REQUIRED for 01; supply original file
