@@ -1,0 +1,15 @@
+# Notebook / analysis code
+scikit-learn
+matplotlib
+ipython
+threadpoolctl
+starfile
+mrcfile
+
+# Shared by the notebook code and streamlit app
+numpy
+pandas
+
+# Streamlit app
+streamlit
+plotly
