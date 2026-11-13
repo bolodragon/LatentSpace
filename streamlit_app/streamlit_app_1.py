@@ -51,7 +51,7 @@ with right_col:
 st.markdown("##### Workflow\n\nImage denoising workflow starting from very experimental images without any possibility of differentiation between protein and noise to actually visualizing the particle")
 workflow_path = APP_DIR / "images" / "workflow_ml4ls.png"
 if workflow_path.exists():
-    st.image(str(workflow_path), width="stretch"=True)
+    st.image(str(workflow_path), width="stretch")
 else:
     st.warning("Workflow image not found (images/workflow_ml4ls.png).")
 
@@ -166,7 +166,7 @@ def scatter(df, x_label, y_label, title, color=None):
     )
     fig.update_traces(marker=dict(size=7, opacity=0.8))
     fig.update_layout(height=520, margin=dict(l=10, r=10, t=50, b=10))
-    st.plotly_chart(fig, width="stretch"=True)
+    st.plotly_chart(fig, width="stretch")
 
 
 def scatter_cluster(df, x_label, y_label, title, color=None, category_orders=None, color_map=None):
@@ -181,7 +181,7 @@ def scatter_cluster(df, x_label, y_label, title, color=None, category_orders=Non
     )
     fig.update_traces(marker=dict(size=7, opacity=0.8))
     fig.update_layout(height=520, margin=dict(l=10, r=10, t=50, b=10))
-    st.plotly_chart(fig, width="stretch"=True)
+    st.plotly_chart(fig, width="stretch")
 
 
 def frame(scores, table, xi, yi):
@@ -279,7 +279,7 @@ with st.expander(f"{method} important pixels (click to show)"):
             index=starts.index(page_for(xi)),
             format_func=lambda s: Path(pages[s]).name,
         )
-        st.image(pages[chosen], caption=Path(pages[chosen]).name, width="stretch"=True)
+        st.image(pages[chosen], caption=Path(pages[chosen]).name, width="stretch")
  
 st.divider()
 
@@ -311,7 +311,7 @@ with ctrl2:
         if "dbscan" in algo.lower():
             counts = counts[counts.index.astype(str).isin(["1", "-1"])]
         st.caption(f"{len(table2):,} particles · cluster sizes (-1 = noise)")
-        st.dataframe(counts, width="stretch"=True)
+        st.dataframe(counts, width="stretch")
 
 with plot2:
     df2 = frame(scores2, table2, xi2, yi2)
@@ -341,7 +341,7 @@ with plot2:
 
 if cluster_png:
     with st.expander("Clustering plot saved by the notebook"):
-        st.image(cluster_png, width="stretch"=True)
+        st.image(cluster_png, width="stretch")
 
 st.download_button(
     "Download saved assignments (CSV)",
@@ -349,3 +349,37 @@ st.download_button(
     f"{run_name}_assignments.csv",
     "text/csv",
 )
+
+st.markdown("##### Validation")
+left_col, right_col = st.columns([1, 1], vertical_alignment="center")
+with left_col:
+    workflow_path = APP_DIR / "images" / "validation.png"
+    if workflow_path.exists():
+        st.image(str(workflow_path), width=600)
+    else:
+        st.warning("Validation image not found (images/validation.png).")
+
+with right_col:
+    workflow_path = APP_DIR / "images" / "validation_1.png"
+    if workflow_path.exists():
+        st.image(str(workflow_path), width=500)
+    else:
+        st.warning("Validation image not found (images/validation_1.png).")
+
+st.divider()
+
+st.markdown("##### Outlook - selecting templates by hand")
+workflow_path = APP_DIR / "images" / "outlook.png"
+if workflow_path.exists():
+    st.image(str(workflow_path), width=800)
+else:
+    st.warning("Validation image not found (images/outlook.png).")
+
+st.divider()
+
+st.markdown("##### What remains in the end...")
+workflow_path = APP_DIR / "images" / "fist.png"
+if workflow_path.exists():
+    st.image(str(workflow_path), width="stretch")
+else:
+    st.warning("Validation image not found (images/fist.png).")
