@@ -2,7 +2,7 @@
 
 Initial release of LatentSpace, an exploratory workflow for investigating protein composition in cryo-EM particle images.
 
-- Notebook workflow (`experiment.ipyn`) for preprocessing, CWF denoising, feature extraction, PCA, ICA, and clustering.
+- Notebook workflow (`experiment.ipynb`) for preprocessing, CWF denoising, feature extraction, PCA, ICA, and clustering.
 - Validation notebooks (`validation_folder`) for particle mapping, feature preparation, and cross-validation.
 - Saved analysis checkpoints and a Streamlit app for exploring clusters and particle images.
 - Python dependencies collected in `requirements.txt` for the notebooks, helper modules, and app.
