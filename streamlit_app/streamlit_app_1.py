@@ -1,12 +1,4 @@
 """
-Cryo-EM particle explorer – layout follows the hand-drawn sketch:
-
-  [movie 1]        [Title]        [movie 2]
-  [workflow image]
-  [dim-reduction controls]  | [scatter plot, hover -> particle ID, cluster, x, y]
-  [PCA/ICA important pixels (saved loadings images)]
-  [clustering controls]     | [clustered scatter plot]
-
 Everything is loaded from the notebook's saved results (nothing is recomputed):
   outputs/clustering_index.json  ->  {"PCA kmeans": <folder>, "PCA DBSCAN": <folder>, "ICA kmeans": <folder>}
   <folder>/arrays.npz (selected_scores), table.json (image_name, cluster, ...), clusters.png, settings.json
@@ -49,15 +41,14 @@ with left_col:
 with title_col:
     st.markdown(
         "<h1 style='text-align:center;font-size:2.3rem;line-height:1.2'>"
-        "Is it a dimer or a tetramer?</h1>"
-        "<p style='text-align:center;color:gray'>Differentiating a dimer from a tetramer "
-        "directly from cryo-EM particle images</p>",
+        "What protein composition is it?</h1>"
+        "<p style='text-align:center;color:gray'>Differentiating protein composition in cryo-EM images </p>",
         unsafe_allow_html=True,
     )
 with right_col:
     components.html(make_video_html(str(APP_DIR / "movies" / "tetramer_small.webm")), height=240)
 
-st.markdown("##### Workflow")
+st.markdown("##### Workflow\n\nImage denoising workflow starting from very experimental images without any possibility of differentiation between protein and noise to actually visualizing the particle")
 workflow_path = APP_DIR / "images" / "workflow_ml4ls.png"
 if workflow_path.exists():
     st.image(str(workflow_path), use_container_width=True)
@@ -109,8 +100,25 @@ def load_run(outputs_folder: str, run_name: str):
         raise ValueError("selected_scores and table have different numbers of rows.")
 
     plot = checkpoint / "clusters.png"
-    return scores, table, (str(plot) if plot.exists() else None)
+    return scores, table, (str(plot) if plot.exists() else None), variance_ratio_from(arrays)
 
+def variance_ratio_from(arrays: dict):
+    """Look for a 1-D explained-variance-ratio array."""
+    for key, arr in arrays.items():
+        k = key.lower().replace("_", "")
+        if arr.ndim == 1 and ("explainedvarianceratio" in k or ("variance" in k and "ratio" in k)):
+            return np.asarray(arr, dtype=float)
+    return None
+
+
+@st.cache_data(show_spinner=False)
+def variance_ratio_from_model(folder: str):
+    """Same lookup in model.npz of the PCA output folder."""
+    model = Path(folder) / "model.npz"
+    if not model.exists():
+        return None
+    with np.load(model, allow_pickle=False) as archive:
+        return variance_ratio_from({k: archive[k] for k in archive.files})
 
 def split_run_name(name: str):
     """'PCA kmeans' -> ('PCA', 'kmeans'); returns (None, name) if no method token."""
@@ -141,9 +149,31 @@ def loadings_for(method: str):
     return None, {}
 
 
+def axis_label(i: int) -> str:
+    """'PC1 (23.4%)' when the explained variance is known, otherwise 'PC1'."""
+    if ratio is not None and i < len(ratio):
+        return f"{comp_labels[i]} ({ratio[i]:.1%})"
+    return comp_labels[i]
+
+
 def scatter(df, x_label, y_label, title, color=None):
     fig = px.scatter(
         df, x="x", y="y", color=color,
+        hover_name="particle",
+        hover_data={"x": ":.3f", "y": ":.3f", "particle": False},
+        labels={"x": x_label, "y": y_label},
+        title=title,
+    )
+    fig.update_traces(marker=dict(size=7, opacity=0.8))
+    fig.update_layout(height=520, margin=dict(l=10, r=10, t=50, b=10))
+    st.plotly_chart(fig, use_container_width=True)
+
+
+def scatter_cluster(df, x_label, y_label, title, color=None, category_orders=None, color_map=None):
+    fig = px.scatter(
+        df, x="x", y="y", color=color,
+        category_orders=category_orders,
+        color_discrete_map=color_map,
         hover_name="particle",
         hover_data={"cluster": True, "x": ":.3f", "y": ":.3f", "particle": False},
         labels={"x": x_label, "y": y_label},
@@ -155,8 +185,11 @@ def scatter(df, x_label, y_label, title, color=None):
 
 
 def frame(scores, table, xi, yi):
-    particles = (table["image_name"].astype(str).to_numpy()
-                 if "image_name" in table.columns else np.arange(len(table)).astype(str))
+    if "image_name" in table.columns:
+        # "path/to/stack.mrc@123" -> "123"  (names without "@" stay unchanged)
+        particles = table["image_name"].astype(str).str.split("@", n=1).str[0].to_numpy()
+    else:
+        particles = np.arange(len(table)).astype(str)
     cluster = (table["cluster"].astype(str).to_numpy()
                if "cluster" in table.columns else np.full(len(table), "-"))
     return pd.DataFrame({"x": scores[:, xi], "y": scores[:, yi],
@@ -193,10 +226,16 @@ with ctrl:
 # first saved run of this method supplies the embedding for the top plot
 first_run = next(iter(runs[method].values()))
 try:
-    scores, table, _ = load_run(str(outputs), first_run)
+    scores, table, _, ratio = load_run(str(outputs), first_run)
 except Exception as e:
     st.error(f"Could not load saved run '{first_run}': {e}")
     st.stop()
+
+loadings_folder, pages = loadings_for(method)
+if ratio is None and loadings_folder:
+    ratio = variance_ratio_from_model(loadings_folder)
+if method != "PCA":
+    ratio = None  # explained variance only makes sense for PCA
 
 n_comp = scores.shape[1]
 if n_comp < 2:
@@ -211,41 +250,37 @@ with ctrl:
     x_comp = st.selectbox("x", comp_labels, index=0)
     y_comp = st.selectbox("y", comp_labels, index=1)
     xi, yi = comp_labels.index(x_comp), comp_labels.index(y_comp)
-    st.caption("Hover over a point to see its particle ID, cluster and x / y values.")
+    st.caption("Hover over a point to see its particle ID and x / y values.")
 
 with plot:
-    scatter(frame(scores, table, xi, yi), x_comp, y_comp, f"{method}: {x_comp} vs {y_comp}")
+    scatter(frame(scores, table, xi, yi), axis_label(xi), axis_label(yi),
+            f"{method}: {x_comp} vs {y_comp}")
+    if method == "PCA" and ratio is None:
+        st.caption("Explained variance not found in arrays.npz or model.npz, so it is not shown on the axes.")
 
 
 # =========================================================
 # SECTION 2: important pixels (saved loadings images)
 # =========================================================
-st.markdown(f"##### {method} important pixels")
-
-loadings_folder, pages = loadings_for(method)
-if not pages:
-    st.info(f"No loadings_XXXX.png files found for {method}.")
-else:
-    starts = list(pages)
-
-    def page_for(i: int) -> int:
-        return max([s for s in starts if s <= i], default=starts[0])
-
-    shown = []
-    for label, idx in ((x_comp, xi), (y_comp, yi)):
-        start = page_for(idx)
-        if start not in [s for _, s in shown]:
-            shown.append((label, start))
-
-    st.caption("Saved loadings images for the selected components.")
-    for col, (label, start) in zip(st.columns(len(shown)), shown):
-        col.image(pages[start], caption=f"{Path(pages[start]).name} · contains {label}",
-                  use_container_width=True)
-
-    with st.expander("Browse all loadings pages"):
-        chosen = st.selectbox("Loadings page", starts, format_func=lambda s: Path(pages[s]).name)
-        st.image(pages[chosen], use_container_width=True)
-
+with st.expander(f"{method} important pixels (click to show)"):
+    if not pages:
+        st.info(f"No loadings_XXXX.png files found for {method}.")
+    else:
+        starts = list(pages)
+ 
+        def page_for(i: int) -> int:
+            """Last loadings file whose start index is <= the component index."""
+            return max([s for s in starts if s <= i], default=starts[0])
+ 
+        # the dropdown opens on the page that contains the selected x component
+        chosen = st.selectbox(
+            "Loadings image",
+            starts,
+            index=starts.index(page_for(xi)),
+            format_func=lambda s: Path(pages[s]).name,
+        )
+        st.image(pages[chosen], caption=Path(pages[chosen]).name, use_container_width=True)
+ 
 st.divider()
 
 
@@ -260,7 +295,7 @@ with ctrl2:
 
 run_name = runs[method][algo]
 try:
-    scores2, table2, cluster_png = load_run(str(outputs), run_name)
+    scores2, table2, cluster_png, _ = load_run(str(outputs), run_name)
 except Exception as e:
     st.error(f"Could not load saved run '{run_name}': {e}")
     st.stop()
@@ -273,12 +308,36 @@ if (xi2, yi2) != (xi, yi):
 with ctrl2:
     if "cluster" in table2.columns:
         counts = table2["cluster"].value_counts().sort_index().rename("particles")
+        if "dbscan" in algo.lower():
+            counts = counts[counts.index.astype(str).isin(["1", "-1"])]
         st.caption(f"{len(table2):,} particles · cluster sizes (-1 = noise)")
         st.dataframe(counts, use_container_width=True)
 
 with plot2:
-    scatter(frame(scores2, table2, xi2, yi2), comp_labels[xi2], comp_labels[yi2],
-            f"{run_name}: {comp_labels[xi2]} vs {comp_labels[yi2]}", color="cluster")
+    df2 = frame(scores2, table2, xi2, yi2)
+    cmap = None
+ 
+    def numeric_first(label: str):
+        """Sort key: numeric labels in numeric order."""
+        try:
+            return (0, int(label), "")
+        except ValueError:
+            return (1, 0, label)
+ 
+    # legend order: -1, 0, 1, 2, ... (plain string sorting would give "10" before "2")
+    order = {"cluster": sorted(df2["cluster"].unique(), key=numeric_first)}
+ 
+    if "dbscan" in algo.lower():
+        # DBSCAN: noise is drawn first = in the background
+        df2 = df2[df2["cluster"].isin(["1", "-1"])]
+        order = {"cluster": ["-1", "1"]}
+        cmap = {"-1": "lightgray", "1": "#1f77b4"}
+        st.caption(f"Showing only cluster 1 and noise (-1): {len(df2):,} of {len(table2):,} particles.")
+ 
+    scatter_cluster(df2, axis_label(xi2), axis_label(yi2),
+            f"{run_name}: {comp_labels[xi2]} vs {comp_labels[yi2]}",
+            color="cluster", category_orders=order, color_map=cmap)
+ 
 
 if cluster_png:
     with st.expander("Clustering plot saved by the notebook"):
