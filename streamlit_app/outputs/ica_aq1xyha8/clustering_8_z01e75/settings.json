@@ -1,0 +1,52 @@
+{
+  "algorithm": "KMeans",
+  "clusters": 6,
+  "seed": 5,
+  "noise_label": -1,
+  "ica_directory": "/Users/anna-lena/Desktop/work/phd_courses/ml4ls/outputs/ica_aq1xyha8",
+  "ica_settings": {
+    "input_total_columns": 40,
+    "input_columns": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6
+    ],
+    "input_feature_names": [
+      "PC1",
+      "PC2",
+      "PC3",
+      "PC4",
+      "PC5",
+      "PC6"
+    ],
+    "n_components": 4,
+    "seed": 5,
+    "max_iter": 5000,
+    "tol": 0.001,
+    "fun": "logcosh",
+    "whiten": "unit-variance",
+    "converged": true,
+    "iterations": 537,
+    "input_source": "combined_cropped",
+    "input_directory": "/Users/anna-lena/Desktop/work/phd_courses/ml4ls/outputs/paired_qpx0wsn8",
+    "representation": "pca",
+    "parent_pca": "/Users/anna-lena/Desktop/work/phd_courses/ml4ls/outputs/pca_nfv9wh6d"
+  },
+  "independent_components": [
+    1,
+    2,
+    3,
+    4
+  ],
+  "raw_label_to_cluster": {
+    "0": 1,
+    "1": 2,
+    "2": 3,
+    "3": 4,
+    "4": 5,
+    "5": 6
+  }
+}

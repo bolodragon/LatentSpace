@@ -1,0 +1,306 @@
+{
+  "schema_version": 1,
+  "name": "pca_dbscan",
+  "input_source": "combined_cropped",
+  "input_directory": "/Users/anna-lena/Desktop/work/phd_courses/ml4ls/outputs/paired_qpx0wsn8",
+  "parameters": {
+    "pcs": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6
+    ],
+    "scaling": "standardize",
+    "min_samples": 4,
+    "eps": 0.8,
+    "metric": "euclidean",
+    "algorithm": "DBSCAN",
+    "noise_label": -1,
+    "cluster_count": 14,
+    "noise_fraction": 0.0653,
+    "scaler_mean": [
+      -4.636202174879145e-09,
+      -6.249330763239414e-08,
+      1.6898927970032674e-08,
+      9.130298803938785e-09,
+      3.962133584991534e-08,
+      1.773563817550894e-08
+    ],
+    "scaler_scale": [
+      1.001350116230194,
+      0.86277237229739,
+      0.715829874838157,
+      0.6478365917634539,
+      0.6092136830637367,
+      0.48663293199946045
+    ]
+  },
+  "parent_pca": "/Users/anna-lena/Desktop/work/phd_courses/ml4ls/outputs/pca_nfv9wh6d",
+  "input_bundle_settings": {
+    "files": {
+      "image_names": "/Users/anna-lena/Desktop/work/phd_courses/ml4ls/outputs/paired_fa0d1mub/image_names.npy",
+      "circle_mask": "/Users/anna-lena/Desktop/work/phd_courses/ml4ls/outputs/paired_fa0d1mub/circle_mask.npy",
+      "edge_cutoffs": "/Users/anna-lena/Desktop/work/phd_courses/ml4ls/outputs/paired_fa0d1mub/edge_cutoffs.npy",
+      "cropped_original": "/Users/anna-lena/Desktop/work/phd_courses/ml4ls/outputs/paired_fa0d1mub/cropped_original.npy",
+      "cropped_derivative": "/Users/anna-lena/Desktop/work/phd_courses/ml4ls/outputs/paired_fa0d1mub/cropped_derivative.npy",
+      "aligned_cropped_original": "/Users/anna-lena/Desktop/work/phd_courses/ml4ls/outputs/paired_awtacadd/aligned_cropped_original.npy",
+      "aligned_cropped_derivative": "/Users/anna-lena/Desktop/work/phd_courses/ml4ls/outputs/paired_awtacadd/aligned_cropped_derivative.npy",
+      "aggregated_original": "/Users/anna-lena/Desktop/work/phd_courses/ml4ls/outputs/paired_7rnbxvyu/aggregated_original.npy",
+      "total_positive_pixels_original": "/Users/anna-lena/Desktop/work/phd_courses/ml4ls/outputs/paired_7rnbxvyu/total_positive_pixels_original.npy",
+      "aggregated_derivative": "/Users/anna-lena/Desktop/work/phd_courses/ml4ls/outputs/paired_7rnbxvyu/aggregated_derivative.npy",
+      "total_positive_pixels_derivative": "/Users/anna-lena/Desktop/work/phd_courses/ml4ls/outputs/paired_7rnbxvyu/total_positive_pixels_derivative.npy",
+      "sector_map": "/Users/anna-lena/Desktop/work/phd_courses/ml4ls/outputs/paired_7rnbxvyu/sector_map.npy",
+      "bin_pixel_counts": "/Users/anna-lena/Desktop/work/phd_courses/ml4ls/outputs/paired_7rnbxvyu/bin_pixel_counts.npy",
+      "fft_support_mean_original": "/Users/anna-lena/Desktop/work/phd_courses/ml4ls/outputs/paired_5zets6ym/fft_support_mean_original.npy",
+      "fft_complex_original": "/Users/anna-lena/Desktop/work/phd_courses/ml4ls/outputs/paired_5zets6ym/fft_complex_original.npy",
+      "fft_original": "/Users/anna-lena/Desktop/work/phd_courses/ml4ls/outputs/paired_5zets6ym/fft_original.npy",
+      "fft_support_mean_derivative": "/Users/anna-lena/Desktop/work/phd_courses/ml4ls/outputs/paired_5zets6ym/fft_support_mean_derivative.npy",
+      "fft_complex_derivative": "/Users/anna-lena/Desktop/work/phd_courses/ml4ls/outputs/paired_5zets6ym/fft_complex_derivative.npy",
+      "fft_derivative": "/Users/anna-lena/Desktop/work/phd_courses/ml4ls/outputs/paired_5zets6ym/fft_derivative.npy",
+      "combined_feature_means": "/Users/anna-lena/Desktop/work/phd_courses/ml4ls/outputs/paired_qpx0wsn8/combined_feature_means.npy",
+      "combined_feature_gains": "/Users/anna-lena/Desktop/work/phd_courses/ml4ls/outputs/paired_qpx0wsn8/combined_feature_gains.npy",
+      "combined_cropped": "/Users/anna-lena/Desktop/work/phd_courses/ml4ls/outputs/paired_qpx0wsn8/combined_cropped.npy"
+    },
+    "blocks": {
+      "cropped_original": [
+        {
+          "name": "cropped_original",
+          "kind": "image",
+          "start": 0,
+          "stop": 4096
+        }
+      ],
+      "cropped_derivative": [
+        {
+          "name": "cropped_derivative",
+          "kind": "image",
+          "start": 0,
+          "stop": 4096
+        }
+      ],
+      "aligned_cropped_original": [
+        {
+          "name": "aligned_cropped_original",
+          "kind": "image",
+          "start": 0,
+          "stop": 4096
+        }
+      ],
+      "aligned_cropped_derivative": [
+        {
+          "name": "aligned_cropped_derivative",
+          "kind": "image",
+          "start": 0,
+          "stop": 4096
+        }
+      ],
+      "aggregated_original": [
+        {
+          "name": "original intensity_sum",
+          "kind": "sector",
+          "start": 0,
+          "stop": 24
+        },
+        {
+          "name": "original positive_pixel_fraction",
+          "kind": "sector",
+          "start": 24,
+          "stop": 48
+        }
+      ],
+      "aggregated_derivative": [
+        {
+          "name": "derivative intensity_sum",
+          "kind": "sector",
+          "start": 0,
+          "stop": 24
+        },
+        {
+          "name": "derivative positive_pixel_fraction",
+          "kind": "sector",
+          "start": 24,
+          "stop": 48
+        }
+      ],
+      "fft_original": [
+        {
+          "name": "fft_original",
+          "kind": "frequency",
+          "start": 0,
+          "stop": 4096
+        }
+      ],
+      "fft_derivative": [
+        {
+          "name": "fft_derivative",
+          "kind": "frequency",
+          "start": 0,
+          "stop": 4096
+        }
+      ],
+      "combined_cropped": [
+        {
+          "name": "aligned_cropped_original",
+          "kind": "image",
+          "start": 0,
+          "stop": 4096,
+          "selection_key": "aligned_cropped_original",
+          "raw_total_variance": 780.1390960554958,
+          "scale": 27.93097019538519,
+          "weight": 1.0,
+          "gain": 0.035802551540627184,
+          "constant": false,
+          "weighted_total_variance": 0.9999999999999999
+        },
+        {
+          "name": "aligned_cropped_derivative",
+          "kind": "image",
+          "start": 4096,
+          "stop": 8192,
+          "selection_key": "aligned_cropped_derivative",
+          "raw_total_variance": 166.3384516522031,
+          "scale": 12.897226510075843,
+          "weight": 1.0,
+          "gain": 0.07753605003515748,
+          "constant": false,
+          "weighted_total_variance": 1.0000000000000002
+        },
+        {
+          "name": "original intensity_sum",
+          "kind": "sector",
+          "start": 8192,
+          "stop": 8216,
+          "selection_key": "original_intensity_sum",
+          "raw_total_variance": 24490.240728395795,
+          "scale": 156.493580470241,
+          "weight": 1.0,
+          "gain": 0.006390038473112711,
+          "constant": false,
+          "weighted_total_variance": 1.0
+        },
+        {
+          "name": "original positive_pixel_fraction",
+          "kind": "sector",
+          "start": 8216,
+          "stop": 8240,
+          "selection_key": "original_positive_pixel_count",
+          "raw_total_variance": 1.0186518448463704,
+          "scale": 1.009282836892796,
+          "weight": 1.0,
+          "gain": 0.9908025416132367,
+          "constant": false,
+          "weighted_total_variance": 1.0000000000000002
+        },
+        {
+          "name": "derivative intensity_sum",
+          "kind": "sector",
+          "start": 8240,
+          "stop": 8264,
+          "selection_key": "derivative_intensity_sum",
+          "raw_total_variance": 3197.1434654246905,
+          "scale": 56.54328842068429,
+          "weight": 1.0,
+          "gain": 0.017685564952642313,
+          "constant": false,
+          "weighted_total_variance": 1.0
+        },
+        {
+          "name": "derivative positive_pixel_fraction",
+          "kind": "sector",
+          "start": 8264,
+          "stop": 8288,
+          "selection_key": "derivative_positive_pixel_count",
+          "raw_total_variance": 0.5740586575812172,
+          "scale": 0.757666587346451,
+          "weight": 1.0,
+          "gain": 1.3198417571801138,
+          "constant": false,
+          "weighted_total_variance": 0.9999999999999999
+        },
+        {
+          "name": "fft_original",
+          "kind": "frequency",
+          "start": 8288,
+          "stop": 12384,
+          "selection_key": "fft_original",
+          "raw_total_variance": 32.51094486038055,
+          "scale": 5.701836972448489,
+          "weight": 1.0,
+          "gain": 0.17538207508072243,
+          "constant": false,
+          "weighted_total_variance": 0.9999999999999998
+        },
+        {
+          "name": "fft_derivative",
+          "kind": "frequency",
+          "start": 12384,
+          "stop": 16480,
+          "selection_key": "fft_derivative",
+          "raw_total_variance": 19.580060989187437,
+          "scale": 4.424936269505747,
+          "weight": 1.0,
+          "gain": 0.22599195538508787,
+          "constant": false,
+          "weighted_total_variance": 1.0
+        }
+      ]
+    },
+    "source_checkpoint": "/Users/anna-lena/Desktop/work/phd_courses/ml4ls/outputs/cwf_saved_gxoc83ks",
+    "source": "normalized_camille",
+    "image_shape": [
+      64,
+      64
+    ],
+    "sigma": 1.0,
+    "edge_percentile": 70.0,
+    "radius_fraction": 0.35,
+    "preserve_edge_strength": false,
+    "derivative_representation": "binary",
+    "crop_directory": "/Users/anna-lena/Desktop/work/phd_courses/ml4ls/outputs/paired_fa0d1mub",
+    "aligned_directory": "/Users/anna-lena/Desktop/work/phd_courses/ml4ls/outputs/paired_awtacadd",
+    "alignment_controls": {
+      "exclusion": 15.0,
+      "sector": 20.0,
+      "min_axis_ratio": 1.1,
+      "min_contrast": 0.05
+    },
+    "n_sectors": 8,
+    "n_radial_bands": 3,
+    "n_bins": 24,
+    "aggregation_method": "intensity_sum",
+    "start_angle_degrees": 45.0,
+    "normalization": "none",
+    "count_mode": "fraction",
+    "positive_threshold": 0.0,
+    "bin_order": "inner to outer equal-width rings, clockwise sectors within each ring",
+    "fft_convention": "fftshift(fft2(image, norm=\"ortho\")); log1p(abs(spectrum)); no taper",
+    "fft_remove_support_mean": true,
+    "feature_order": [
+      "aligned_cropped_original",
+      "aligned_cropped_derivative",
+      "original_intensity_sum",
+      "original_positive_pixel_count",
+      "derivative_intensity_sum",
+      "derivative_positive_pixel_count",
+      "fft_original",
+      "fft_derivative"
+    ],
+    "flatten_order": "C (row-wise)",
+    "feature_scaling": "block_variance",
+    "block_weights": {
+      "aligned_cropped_original": 1.0,
+      "aligned_cropped_derivative": 1.0,
+      "original_intensity_sum": 1.0,
+      "original_positive_pixel_count": 1.0,
+      "derivative_intensity_sum": 1.0,
+      "derivative_positive_pixel_count": 1.0,
+      "fft_original": 1.0,
+      "fft_derivative": 1.0
+    },
+    "scaling_rule": "(raw - feature_means) * feature_gains; fitted across images; no per-image normalization",
+    "aggregated_directory": "/Users/anna-lena/Desktop/work/phd_courses/ml4ls/outputs/paired_7rnbxvyu",
+    "fft_directory": "/Users/anna-lena/Desktop/work/phd_courses/ml4ls/outputs/paired_5zets6ym"
+  }
+}

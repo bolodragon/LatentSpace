@@ -1,0 +1,33 @@
+{
+  "input_total_columns": 40,
+  "input_columns": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6
+  ],
+  "input_feature_names": [
+    "PC1",
+    "PC2",
+    "PC3",
+    "PC4",
+    "PC5",
+    "PC6"
+  ],
+  "n_components": 4,
+  "seed": 5,
+  "max_iter": 5000,
+  "tol": 0.001,
+  "fun": "logcosh",
+  "whiten": "unit-variance",
+  "converged": true,
+  "iterations": 537,
+  "input_source": "combined_cropped",
+  "input_directory": "/Users/anna-lena/Desktop/work/phd_courses/ml4ls/outputs/paired_qpx0wsn8",
+  "representation": "pca",
+  "parent_pca": "/Users/anna-lena/Desktop/work/phd_courses/ml4ls/outputs/pca_nfv9wh6d",
+  "transform": "(selected_input - mean) @ components.T",
+  "image_mapping": "source and full image_name in image_scores.csv"
+}
