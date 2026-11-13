@@ -96,6 +96,3 @@ This project is licensed under the MIT License. This means that anyone is free t
 See the LICENSE file for the full license text.
 
 Copyright (c) 2026 LatentSpace group
-
-#### TO DO: software/package versions
-#### TO DO: final tagged release / archived version
