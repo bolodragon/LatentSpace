@@ -7,8 +7,9 @@ Contribution record of the group members:
 - Cross-validation: Khuanpiroon Ratanasopa
 - Streamlit app: Anna-Lena Fischer
 - Code files:
-    - `xxx_camille.py` and processing: Camille Penot
+    - `cwf_denoising/` and its files and functions: Camille Penot
     - `expeirment.ipynb` and functions: Xuelong Fan
-    - `validation_folder`, and its files and functions: Khuanpiroon Ratanasopa
+    - `validation_folder/`, and its files and functions: Khuanpiroon Ratanasopa
+    - `streamlit_app/streamlit_app_1.py`: Anna-Lena Fischer
 
 All group members discussed the Results together and made decisions on how to proceed with the project and the final presentation.
