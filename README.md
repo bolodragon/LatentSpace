@@ -53,8 +53,20 @@ The notebooks expect, or inspect, the following filenames:
 
 **Critical ordering fact:** The CWF stack follows the **original raw MRC stack order**, **not the STAR row order**. Matching particles by `particle_id` and `stack_index_1based` is essential; never simply align STAR rows and CWF rows by their numerical position.
 
+## Streamlit: Start the app
 
-Information about the streamlit app: data output of the jupyter notebook run on 4000 images (to keep the data small enough for smooth application running) can be found in the `outputs` folder and are the basis for the streamlit app. Access the app here: https://latentspace.streamlit.app/
+Run from the root of this repository in the same Python environment used for the notebook:
+
+```bash
+python -m pip install -r streamlit_requirements.txt
+streamlit run streamlit_app.py
+```
+
+## How to use it
+
+Run the notebook sections that save named clustering results into `LatentSpace_data`. Launch the app from this repository so it can find that folder. The app reads `clustering_index.json`, uses `analysis_storage.load_clustering`, and attempts to restore images using `cluster_examples.load_example_images`.
+
+Information about the streamlit app: data output of the jupyter notebook was run on 4000 images (to keep the data small enough for smooth application running) which can be found in the `outputs` folder and are the basis for the streamlit app. Access the app here: https://latentspace.streamlit.app/
 
 
 
