@@ -11,5 +11,5 @@ numpy
 pandas
 
 # Streamlit app
-streamlit
+streamlit>=1.32
 plotly
