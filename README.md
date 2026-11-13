@@ -8,7 +8,7 @@ The main analysis platform is the jupyter notebook "expeirment.ipynb". Each cell
 ├── README.md
 ├── CONTRIBUTIONS.md
 ├── expeirment.ipynb
-├── camille_code_cwf.ipynb/py
+├── cwf_denoising/code.py
 ├── ja_notebook_validation.ipynb
 │
 ├── latent_methods.py          # REQUIRED for 01; supply original file
@@ -17,7 +17,7 @@ The main analysis platform is the jupyter notebook "expeirment.ipynb". Each cell
 ├── particle_paired.py         # REQUIRED for 02b, 03 and 09; supply original file
 ├── particle_aggregation.py    # REQUIRED for 03; supply original file
 │
-├── streamlit_app.py           # Streamlit app file
+├── streamlit/                 # Streamlit app folder, the currently run version relates to the forked repository LatentSpace_afi
 └── outputs/                   # Generated datasets/models/figures; usually not tracked
 ```
 
@@ -54,27 +54,6 @@ The notebooks expect, or inspect, the following filenames:
 **Critical ordering fact:** The CWF stack follows the **original raw MRC stack order**, **not the STAR row order**. Matching particles by `particle_id` and `stack_index_1based` is essential; never simply align STAR rows and CWF rows by their numerical position.
 
 
-XXXXX - change in notebook - XXXXX
-Some older exploratory cells refer to data underneath `LatentSpace_data/` or `outputs/cwf_from_camille/`. Check those cells against your local layout; the main validated full-stack path used by this project is `particles_cwf.mrc` at the project root.
-XXXXX - change in notebook - XXXXX
-### 3. Update machine-specific paths
-XXXXX - change in notebook - XXXXX
-Several uploaded notebooks contain hard-coded paths such as:
-XXXXX - change in notebook - XXXXX
-```python
-PROJECT_ROOT = Path("/Users/kr/ml4ls")
-```
-XXXXX - change in notebook - XXXXX
-**Change these paths to your own repository location** before running. In particular, inspect:
-XXXXX - change in notebook - XXXXX
-- `project_root`, `PROJECT_ROOT`, `seg_root`, and any module search paths;
-- `CHECKPOINT_DIRECTORY` in Notebook 09 (the recorded run uses `outputs/paired_1yn3a_7i`);
-- `final_model_dir_08` in Notebook 08 (the recorded run uses `outputs/validation_09/20261109T175733Z/...`);
-- input stack paths and other paths in legacy/diagnostic cells.
-XXXXX - change in notebook - XXXXX
-The checkpoint directory names above identify **existing example runs**, not universal filenames automatically created on every computer.
-
-
 #### TO DO: merge LatentSpace_afi for streamlit files!!! 
 #### Information about the streamlit app: data output of the jupyter notebook run on 4000 images can be found in the outputs folder and are the basis for the streamlit app. Access the app here: https://latentspace.streamlit.app/
 
@@ -82,14 +61,14 @@ The checkpoint directory names above identify **existing example runs**, not uni
 
 ## Acknowledgements and scope
 
-This README summarizes the main notebook `expeirment.ipynb`, the cwf denoising script `xxx_camille.py` and validation `validation_folder`. The required helper modules are part of the original project implementation and need to be supplied separately.
+This README summarizes the main notebook `expeirment.ipynb`, the cwf denoising script `cwf_denoising/code.py` and validation `validation_folder`. The required helper modules are part of the original project implementation and need to be supplied separately.
 Contributions of the different team members can be found in the CONTRIBUTIONS.md
 
 ## Citation
 
 Cite this work as:
-@software{LatentSpace,
-  author = {Xuelong Fan, Camille Penot, Ja!!!!, Anna-Lena Fischer},
+@software{LatentSpace, 
+  author = {Xuelong Fan, Camille Penot, Khuanpiroon Ratanasopa, Anna-Lena Fischer},
   title = {LatentSpace - Differentiating protein composition in cryo-EM images},
   year = {2026},
   url = {https://github.com/bolodragon/LatentSpace}
